@@ -423,7 +423,11 @@
   waveCanvas.addEventListener('pointerdown', (e)=>{
     if (!state.sourceBuffer) return;
     const rect = waveCanvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * waveDPR; const w = waveCanvas.width; const total = state.sourceBuffer.duration;
+    // When the app is scaled down, convert the pointer coordinate back into the
+    // unscaled coordinate space by dividing by currentScale.  Without this
+    // compensation the waveform selection jumps unpredictably when dragging.
+    const x = ((e.clientX - rect.left) / currentScale) * waveDPR;
+    const w = waveCanvas.width; const total = state.sourceBuffer.duration;
     const s = state.selection; const selX = secToPx(s.startSec, total, w); const selW = secToPx(s.durSec, total, w);
     if (Math.abs(x - selX) <= HANDLE_PX*waveDPR){ dragMode='left'; }
     else if (Math.abs(x - (selX+selW)) <= HANDLE_PX*waveDPR){ dragMode='right'; }
@@ -433,7 +437,7 @@
       s.startSec = pxToSec(nx, total, w); commitSelection(); drawWaveform(); updateStatusSelection(); return;
     }
     function onMove(ev){
-      const x2 = (ev.clientX - rect.left) * waveDPR; let nx;
+      const x2 = ((ev.clientX - rect.left) / currentScale) * waveDPR; let nx;
       if (dragMode==='move'){
         nx = Math.max(0, Math.min(w - selW, x2 - dragOffset));
         s.startSec = pxToSec(nx, total, w);
@@ -738,12 +742,18 @@
     remains centered.  A resize listener updates the scale factor on demand.
   */
   const BASE_APP_WIDTH = 1100; // width the UI was originally designed for
+  // Track the current scale factor applied to the app.  This value is
+  // referenced by pointer event handlers to convert scaled coordinates back
+  // into the original coordinate space.  It is initialised to 1 (no scale)
+  // and updated each time scaleApp() runs.
+  let currentScale = 1;
   function scaleApp(){
     const app = document.getElementById('app');
     if (!app) return;
     const vw = window.innerWidth;
     // limit scaling to values <= 1 to avoid enlarging UI beyond original size
     const scale = Math.min(1, vw / BASE_APP_WIDTH);
+    currentScale = scale;
     app.style.width = BASE_APP_WIDTH + 'px';
     app.style.transform = `scale(${scale})`;
     app.style.transformOrigin = 'top center';
