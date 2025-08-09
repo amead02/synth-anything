@@ -1,1060 +1,717 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Synth Anything</title>
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz48cG9seWdvbiBmaWxsPSclMjNFRUMwNDQnIHBvaW50cz0nNTAsNSA2MSwzOSA5OCwzOSA2Nyw2MSA3OCw5NSA1MCw3MyAyMiw5NSAzMyw2MSAyLDM5IDM5LDM5Jy8+PC9zdmc+">
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg-color: #021c39;
-      --panel-bg: #041f44;
-      --primary: #00c5db;
-      --secondary: #eec044;
-      --highlight: #1fa8d0;
-      --text-light: #e6e6e6;
-      --text-dark: #021c39;
-      --module-gap: 1rem;
-      --border-radius: 0.5rem;
-      --knob-size: 90px;
+    :root{
+      /* Star‑Trek-ish palette */
+      --bg1:#00121e; /* deep space navy */
+      --bg2:#001b2e; /* darker navy */
+      --neon1:#1bd0ff; /* federation cyan */
+      --neon2:#ffcb47; /* command gold */
+      --neon3:#ff7a7a; /* alert red */
+      --panel:#031a2c;
+      --text:#eaf6ff;
+      --muted:#95b3c9;
+      --pulse:0; /* 0..1 from analyser */
     }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:
+      radial-gradient(1200px 800px at 20% 15%, rgba(27,208,255,0.18), transparent 60%),
+      radial-gradient(1000px 700px at 80% 20%, rgba(255,203,71,0.16), transparent 60%),
+      linear-gradient(180deg, var(--bg2), var(--bg1));
+      color:var(--text); font-family: 'Orbitron', system-ui, sans-serif;}
 
-    * {
-      box-sizing: border-box;
-    }
+    #app{max-width:1100px;margin:24px auto;padding:24px;border-radius:18px;background:linear-gradient(180deg, rgba(6,29,49,.84), rgba(1,18,30,.84)); position:relative; overflow:hidden; box-shadow:0 0 calc(26px + 60px*var(--pulse)) rgba(27,208,255,.18), 0 0 calc(12px + 32px*var(--pulse)) rgba(255,203,71,.18), inset 0 0 60px rgba(255,255,255,.04);}    
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+    header h1{font-family:'Audiowide', system-ui; letter-spacing:0.04em;margin:0;font-size:28px; text-shadow:0 0 16px rgba(27,208,255,.55), 0 0 26px rgba(255,203,71,.45)}
+    header h1 .tagline{font-size:14px;margin-left:12px;opacity:.95;}
+    header h1 .tagline strong{color:var(--neon1)}
+    .led{width:14px;height:14px;border-radius:50%; box-shadow:0 0 22px rgba(27,208,255,.7), 0 0 8px rgba(27,208,255,.9) inset; background:radial-gradient(circle at 30% 30%, #fff, var(--neon1)); filter:brightness(calc(0.5 + var(--pulse)*1.2));}
 
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-light);
-      overflow-x: hidden;
-    }
+    .topbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.07); border-radius:16px; padding:12px 14px; box-shadow: inset 0 0 24px rgba(255,255,255,.05), 0 6px 26px rgba(0,0,0,.25)}
 
-    #app {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
+    .file{display:flex;align-items:center;gap:10px}
+    .file input[type="file"]{display:none}
+    .btn{cursor:pointer;border:none;padding:10px 14px;border-radius:12px; font-weight:700; letter-spacing:.04em; color:#00121e; background:linear-gradient(90deg, var(--neon1), var(--neon2)); box-shadow:0 6px 24px rgba(27,208,255,.25), 0 0 24px rgba(255,203,71,.18); transition: transform .08s ease, filter .2s ease}
+    .btn:active{transform:translateY(1px)}
+    .ghost{background:transparent;color:var(--text); border:1px solid rgba(255,255,255,.2); box-shadow:none}
 
-    header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-    header h1 {
-      font-size: 2rem;
-      margin: 0;
-      margin-right: 1rem;
-      color: var(--secondary);
-    }
-    header h1 svg {
-      margin-right: 0.5rem;
-      vertical-align: middle;
-    }
-    header p {
-      margin: 0;
-      font-size: 0.9rem;
-      color: var(--highlight);
-    }
+    #status{font-size:12px;color:var(--muted)}
 
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 0.5rem;
-    }
+    .samplePanel{display:grid; grid-template-columns: 1fr 130px; gap:14px; align-items:center; margin-top:12px}
+    #waveWrap{position:relative}
+    #wave{width:100%; height:180px; display:block; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:12px; box-shadow: inset 0 0 24px rgba(255,255,255,.05)}
+    .waveHelp{font-size:11px;color:var(--muted); margin-top:6px}
 
-    .controls button {
-      background: var(--panel-bg);
-      color: var(--text-light);
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: var(--border-radius);
-      font-size: 0.9rem;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      transition: background 0.2s, transform 0.1s;
-    }
-    .controls button:hover {
-      background: var(--highlight);
-      color: var(--bg-color);
-    }
-    .controls button:active {
-      transform: scale(0.97);
-    }
-    .controls #status {
-      font-size: 0.8rem;
-      margin-left: auto;
-      color: var(--secondary);
-    }
+    .modules{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px}
+    @media (max-width: 900px){ .modules{grid-template-columns: 1fr;} .samplePanel{grid-template-columns: 1fr} .keyboardRow{flex-direction:column} }
 
-    /* Waveform and pitch knob */
-    .wave-panel {
-      background: var(--panel-bg);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      margin-bottom: 1rem;
-      min-height: 180px;
-    }
-    .wave-container {
-      position: relative;
-      flex: 1;
-      height: 140px;
-      border: 1px solid var(--highlight);
-      border-radius: var(--border-radius);
-      overflow: hidden;
-    }
-    canvas#waveform {
-      width: 100%;
-      height: 100%;
-      display: block;
-      background: var(--bg-color);
-    }
-    .selection {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      background: rgba(255,255,255,0.15);
-      border: 2px solid var(--secondary);
-      border-radius: 4px;
-      pointer-events: none;
-    }
-    .pitch-container {
-      width: var(--knob-size);
-      height: var(--knob-size);
-      position: relative;
-    }
+    .module{position:relative}
+    .module h2{margin:0 0 8px 0; font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:#fff}
 
-    /* Modules */
-    .modules {
-      display: flex;
-      gap: var(--module-gap);
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-    }
-    .module {
-      background: var(--panel-bg);
-      border-radius: var(--border-radius);
-      padding: 0.5rem 1rem 1rem;
-      flex: 1;
-      min-width: 200px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      position: relative;
-    }
-    .module h2 {
-      margin: 0;
-      margin-bottom: 0.5rem;
-      font-size: 1rem;
-      color: var(--secondary);
-    }
-    .knob-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .keyboard-hint {
-      font-size: 0.75rem;
-      color: var(--highlight);
-      line-height: 1.2;
-    }
+    .knobs{display:flex; gap:12px; flex-wrap:wrap}
+
+    /* Knob */
+    .knob{width:88px; user-select:none}
+    .dial{width:88px; height:88px; border-radius:50%; position:relative; margin-bottom:6px; background:
+      radial-gradient(circle at 35% 35%, rgba(255,255,255,.25), rgba(255,255,255,.04) 48%, rgba(0,0,0,.3) 60%),
+      conic-gradient(from -120deg, var(--neon1) 0deg, rgba(255,255,255,.2) 120deg, rgba(255,255,255,.12) 300deg, var(--neon2) 360deg);
+      border:1px solid rgba(255,255,255,.12); box-shadow: inset 0 0 18px rgba(0,0,0,.45), 0 0 18px rgba(255,203,71,.2), 0 0 18px rgba(27,208,255,.25)}
+    .dial .tick{position:absolute; left:50%; top:50%; width:2px; height:38%; transform-origin:50% 85%; transform: translate(-50%, -85%) rotate(0deg); background:linear-gradient(180deg, #fff, var(--neon2)); box-shadow:0 0 10px rgba(255,203,71,.75)}
+    .knob label{display:block; font-size:12px; color:#fff; text-align:center}
+    .readout{font-size:11px;color:var(--muted); text-align:center}
+
+    /* Emergency Reset button block */
+    .btn.emergency{padding:12px 16px; background:linear-gradient(90deg, var(--neon3), var(--neon2)); color:#00121e}
+    .module .actions{margin-top:10px}
+    .kbdHint{margin-left:8px; font-size:15px; line-height:1.35; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:10px 12px; max-width:240px}
+    .filterRow{display:flex; gap:12px; align-items:center; flex-wrap:nowrap}
+    .filterRow .knob{flex:0 0 auto}
+    .filterRow .kbdHint{flex:1 1 0; min-width:0; margin-left:8px} 
 
     /* Keyboard */
-    .keyboard {
-      position: relative;
-      background: var(--panel-bg);
-      border-radius: var(--border-radius);
-      padding: 0.5rem;
-      display: flex;
-      justify-content: center;
-      overflow-x: auto;
-      user-select: none;
-    }
-    .key {
-      position: relative;
-      border: 1px solid var(--bg-color);
-      border-radius: 0.2rem;
-      margin: 0 1px;
-      cursor: pointer;
-      transition: background 0.1s, transform 0.05s;
-    }
-    .key.white {
-      width: 40px;
-      height: 160px;
-      background: #f0f5f8;
-      color: var(--bg-color);
-    }
-    .key.black {
-      width: 28px;
-      height: 100px;
-      background: #3f5b78;
-      color: var(--bg-color);
-      z-index: 2;
-      margin-left: -14px;
-      margin-right: -14px;
-    }
-    .key.active.white {
-      background: var(--secondary);
-    }
-    .key.active.black {
-      background: var(--highlight);
-    }
+    .keyboardWrap{position:relative; margin-top:18px; padding:14px; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); box-shadow: inset 0 0 24px rgba(255,255,255,.05); overflow-x:auto}
+    .keyboardRow{display:flex; gap:14px; align-items:flex-start}
+    .keyboard{position:relative; height:220px; flex:0 0 auto; margin:0 auto}
+    .kbdTip{flex:0 0 280px; font-size:12px; color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:12px; line-height:1.4}
 
-    @media (max-width: 600px) {
-      .controls button {
-        flex: 1 1 100%;
-      }
-      .controls #status {
-        flex: 1 1 100%;
-      }
-    }
+    .key.white{position:absolute; bottom:0; width:46px; height:200px; background:linear-gradient(180deg,#ffffff,#e2f1ff); border:1px solid #b7d0e6; border-bottom:4px solid #9bbad0; border-radius:0 0 8px 8px; box-shadow:inset 0 -12px 18px rgba(0,0,0,.12), 0 6px 12px rgba(0,0,0,.35)}
+    /* Lighter complementary sharps/flats; moved down to avoid overhang */
+    .key.black{position:absolute; bottom:80px; width:30px; height:130px; background:linear-gradient(180deg,#2a3758,#1a2643); border:1px solid #3a4b7a; border-bottom:4px solid #223261; border-radius:0 0 6px 6px; z-index:4; box-shadow:inset 0 -10px 14px rgba(0,0,0,.35), 0 8px 18px rgba(0,0,0,.45)}
+    .key .label{position:absolute; bottom:8px; left:0; right:0; text-align:center; font-size:11px; color:#4d6a82}
+    .key.black .label{color:#e7f4ff}
+    .key.active.white{box-shadow: inset 0 -12px 18px rgba(0,0,0,.12), 0 0 16px rgba(27,208,255,.6), 0 0 26px rgba(255,203,71,.4)}
+    .key.active.black{box-shadow: inset 0 -10px 14px rgba(0,0,0,.35), 0 0 16px rgba(27,208,255,.7), 0 0 26px rgba(255,203,71,.55)}
+
+    footer{margin-top:14px; font-size:12px; color:var(--muted)}
   </style>
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="card">
     <header>
-      <h1>
-        <!-- Icon (simple waveform) -->
-        <svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <path fill="var(--secondary)" d="M10 60 L30 40 L50 70 L70 30 L90 60" stroke="var(--secondary)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Synth Anything
-      </h1>
-      <p>Upload your own audio to Synth it!</p>
+      <h1>🔮 Synth Anything <span class="tagline">Upload your own audio to <strong>Synth</strong> it!</span></h1>
+      <div class="led" id="led"></div>
     </header>
-    <div class="controls">
-      <button id="uploadBtn">Upload Audio (10sec Max)</button>
-      <input type="file" id="fileInput" accept="audio/*" style="display:none">
-      <button id="demoBtn">Load Demo Tone</button>
-      <button id="resetBtn">Emergency Reset</button>
-      <span id="status">No sample loaded</span>
-    </div>
-    <div class="wave-panel">
-      <div class="wave-container">
-        <canvas id="waveform"></canvas>
-        <div class="selection" id="selection" style="display:none;"></div>
-      </div>
-      <div class="pitch-container">
-        <div id="pitchKnob"></div>
+
+    <div class="topbar">
+      <div class="file card">
+        <label for="fileInput" class="btn">Upload Audio (10sec Max)</label>
+        <input id="fileInput" type="file" accept="audio/*" />
+        <button class="btn emergency" id="emergencyResetBtn" type="button">🚨 Emergency Reset</button>
+        <button class="btn ghost" id="demoBtn" type="button">Load Demo Tone</button>
+        <div id="status">No sample loaded. Upload audio to begin.</div>
       </div>
     </div>
-    <div class="modules">
-      <div class="module filter">
+
+    <section class="samplePanel card">
+      <div id="waveWrap">
+        <canvas id="wave"></canvas>
+        <div class="waveHelp">Drag the cyan region to move; drag edges to resize (max 4s). Click elsewhere to recenter.</div>
+      </div>
+      <div class="knobs">
+        <div class="knob" data-id="pitch" data-min="-12" data-max="12" data-step="1" data-value="0" data-unit="st"></div>
+      </div>
+    </section>
+
+    <section class="modules">
+      <div class="module card">
         <h2>Filter</h2>
-        <div class="knob-wrapper">
-          <div id="cutoffKnob"></div>
-          <div class="keyboard-hint">
-            Play with your<br>
-            keyboard:<br>
-            Z / S / X / D / C<br>
-            V / G / B / H / N<br>
-            J / M
-          </div>
+        <div class="knobs filterRow">
+          <div class="knob" data-id="cutoff" data-min="100" data-max="16000" data-step="1" data-value="8000" data-unit="Hz"></div>
+          <div class="kbdHint"><div><strong>Play with your keyboard</strong></div><div>Z / S / X / D / C</div><div>V / G / B / H / N</div><div>J / M</div></div>
         </div>
+        
       </div>
-      <div class="module envelope">
+      <div class="module card">
         <h2>Envelope</h2>
-        <div class="knob-wrapper">
-          <div id="attackKnob"></div>
-          <div id="decayKnob"></div>
-          <div id="sustainKnob"></div>
+        <div class="knobs">
+          <div class="knob" data-id="attack" data-min="0.001" data-max="2" data-step="0.001" data-value="0.01" data-unit="s"></div>
+          <div class="knob" data-id="decay" data-min="0.001" data-max="2" data-step="0.001" data-value="0.25" data-unit="s"></div>
+          <div class="knob" data-id="sustain" data-min="0" data-max="1" data-step="0.01" data-value="0.7" data-unit=""></div>
         </div>
       </div>
-      <div class="module delay">
+      <div class="module card">
         <h2>Delay</h2>
-        <div class="knob-wrapper">
-          <div id="delayTimeKnob"></div>
-          <div id="feedbackKnob"></div>
-          <div id="mixKnob"></div>
+        <div class="knobs">
+          <div class="knob" data-id="delayTime" data-min="0" data-max="1000" data-step="1" data-value="240" data-unit="ms"></div>
+          <div class="knob" data-id="feedback" data-min="0" data-max="0.9" data-step="0.01" data-value="0.35" data-unit=""></div>
+          <div class="knob" data-id="mix" data-min="0" data-max="1" data-step="0.01" data-value="0.25" data-unit=""></div>
         </div>
+      </div>
+    </section>
+
+    <div class="keyboardWrap card">
+      <div class="keyboardRow">
+        <div class="keyboard" id="keyboard"></div>
       </div>
     </div>
-    <div class="keyboard" id="keyboard"></div>
+
+    <footer></footer>
   </div>
 
   <script>
-    // Basic Web Audio setup
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const audioCtx = new AudioContext();
+  // --- Audio Engine ---
+  let audioCtx; // created on first interaction
+  const DEFAULTS = {
+    env: { attack: 0.01, decay: 0.25, sustain: 0.7 },
+    cutoff: 8000,
+    delay: { timeMs: 240, feedback: 0.35, mix: 0.25 },
+    pitch: 0,
+  };
+  const state = {
+    baseMidi: 60, // C4
+    sampleBuffer: null, // extracted selection loop
+    sourceBuffer: null, // 10s trimmed original
+    selection: { startSec: 0, durSec: 0.8, defStartSec: 0, defDurSec: 0.8 },
+    nodes: {},
+    analyser: null,
+    pressed: new Set(), // keyboard keys
+    keyMidi: new Map(), // keyboard key -> midi used at keydown
+    voices: new Map(), // midi -> Set<{src, env}>
+    allSources: new Set(),
+    env: { attack: .01, decay: .25, sustain: .7 },
+    filterCutoff: 8000,
+    delay: { timeMs: 240, feedback: .35, mix: .25 },
+    pitchSemis: 0,
+    keyElems: new Map(), // noteOffset -> element (for glow on typing)
+  };
 
-    let sampleBuffer = null;
-    let loopBuffer = null;
-    let selection = {start: 0, end: 0};
-    let pitchSemitones = 0;
+  function ensureAudio(){
+    if (!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const master = audioCtx.createGain();
+      master.gain.value = 0.9;
 
-    // Node and parameter state
-    const state = {
-      cutoff: 4000, // Hz
-      attack: 0.02, // s
-      decay: 0.1,  // s
-      sustain: 0.7, // 0-1
-      delayTime: 0.25, // s
-      feedback: 0.4,
-      mix: 0.3,
-    };
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = state.filterCutoff;
 
-    let filterNode;
-    let delayNode;
-    let feedbackGain;
-    let delayMixGain;
-    let dryGain;
+      // Delay network
+      const delay = audioCtx.createDelay(5.0);
+      delay.delayTime.value = state.delay.timeMs / 1000;
+      const feedback = audioCtx.createGain(); feedback.gain.value = state.delay.feedback;
+      const wet = audioCtx.createGain(); wet.gain.value = state.delay.mix;
+      const dry = audioCtx.createGain(); dry.gain.value = 1 - state.delay.mix;
+      delay.connect(feedback); feedback.connect(delay); // feedback loop
 
-    // Active voices tracking
-    const activeVoices = new Map(); // midi -> Set of sources
-    const allSources = new Set();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
 
-    // Keyboard mapping: note names with midi numbers starting from C4 (60)
-    const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-    const blackOffsets = [1, 3, 6, 8, 10]; // semitone offsets for black keys within octave relative to C
-    const keyboardMapping = [
-      'z','s','x','d','c','v','g','b','h','n','j','m',
-      'q','2','w','3','e','r','5','t','6','y','7','u' // second octave for row above keys
-    ];
+      // Routing: voices -> filter -> dry & delay -> wet -> master -> analyser -> destination
+      filter.connect(dry); filter.connect(delay);
+      delay.connect(wet);
+      dry.connect(master); wet.connect(master);
+      master.connect(analyser); analyser.connect(audioCtx.destination);
 
-    function setupAudioNodes() {
-      filterNode = audioCtx.createBiquadFilter();
-      filterNode.type = 'lowpass';
-      filterNode.frequency.value = state.cutoff;
-      delayNode = audioCtx.createDelay(2.0);
-      delayNode.delayTime.value = state.delayTime;
-      feedbackGain = audioCtx.createGain();
-      feedbackGain.gain.value = state.feedback;
-      delayMixGain = audioCtx.createGain();
-      delayMixGain.gain.value = state.mix;
-      dryGain = audioCtx.createGain();
-      dryGain.gain.value = 1 - state.mix;
-
-      // Connect delay feedback loop
-      delayNode.connect(feedbackGain).connect(delayNode);
-      // Master output
+      state.nodes = { master, filter, delay, feedback, wet, dry };
+      state.analyser = analyser;
+      startPulseVisuals();
     }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
 
-    function connectVoiceNodes(voiceGain) {
-      // voiceGain -> filter -> dry/delay mix -> destination
-      voiceGain.connect(filterNode);
-      // Copy filter output to dry and delay
-      filterNode.connect(dryGain);
-      filterNode.connect(delayNode);
-      // Dry to output
-      dryGain.connect(audioCtx.destination);
-      // Delay to mix and output
-      delayNode.connect(delayMixGain).connect(audioCtx.destination);
+  function startVoice(midi){
+    if (!state.sampleBuffer) return;
+    ensureAudio();
+    const now = audioCtx.currentTime;
+
+    const src = audioCtx.createBufferSource();
+    state.allSources.add(src);
+    src.onended = ()=> state.allSources.delete(src);
+    src.buffer = state.sampleBuffer;
+    src.loop = true;
+    src.loopStart = 0;
+    src.loopEnd = state.sampleBuffer ? state.sampleBuffer.duration : 0;
+
+    const rate = Math.pow(2, ((midi - state.baseMidi + state.pitchSemis)/12));
+    src.playbackRate.value = rate;
+
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(1, now + state.env.attack);
+    env.gain.linearRampToValueAtTime(state.env.sustain, now + state.env.attack + state.env.decay);
+
+    src.connect(env).connect(state.nodes.filter);
+    src.start();
+
+    let set = state.voices.get(midi);
+    if (!set){ set = new Set(); state.voices.set(midi, set); }
+    set.add({ src, env });
+  }
+
+  function stopVoice(midi){
+    const set = state.voices.get(midi);
+    if (!set || !set.size) return;
+    const now = audioCtx?.currentTime || 0;
+    for (const voice of set){
+      try{
+        voice.env.gain.cancelScheduledValues(now);
+        voice.env.gain.setTargetAtTime(0, now, 0.06); // gentle release
+        voice.src.stop(now + 0.15);
+      }catch(e){}
     }
+    state.voices.delete(midi);
+  }
 
-    function updateGlobalNodes() {
-      filterNode.frequency.setValueAtTime(state.cutoff, audioCtx.currentTime);
-      delayNode.delayTime.setValueAtTime(state.delayTime, audioCtx.currentTime);
-      feedbackGain.gain.setValueAtTime(state.feedback, audioCtx.currentTime);
-      delayMixGain.gain.setValueAtTime(state.mix, audioCtx.currentTime);
-      dryGain.gain.setValueAtTime(1 - state.mix, audioCtx.currentTime);
+  function stopAllVoices(){
+    for (const midi of Array.from(state.voices.keys())) stopVoice(midi);
+    const now = audioCtx?.currentTime || 0;
+    for (const src of Array.from(state.allSources)){
+      try{ src.stop(now); }catch(e){}
+      state.allSources.delete(src);
     }
+    state.pressed.clear();
+    state.keyMidi.clear();
+    // Remove UI glow from keys
+    for (const el of state.keyElems.values()) el.classList.remove('active');
+  }
 
-    // Create knob component
-    function createKnob(element, {min, max, value, step, units='', label, onChange}) {
-      // Create dial container
-      const knob = document.createElement('div');
-      knob.style.width = 'var(--knob-size)';
-      knob.style.height = 'var(--knob-size)';
-      knob.style.borderRadius = '50%';
-      knob.style.background = 'linear-gradient(145deg, #0c325c, #05244a)';
-      knob.style.boxShadow = 'inset 4px 4px 8px #00162f, inset -4px -4px 8px #0d2859';
-      knob.style.position = 'relative';
-      knob.style.cursor = 'pointer';
+  // --- File Loading & Selection ---
+  async function loadAudioFile(file){
+    ensureAudio();
+    const arrayBuf = await file.arrayBuffer();
+    let buf = await audioCtx.decodeAudioData(arrayBuf);
+    // take only first 10 seconds
+    const maxSec = 10;
+    if (buf.duration > maxSec){
+      buf = sliceBuffer(buf, 0, maxSec);
+    }
+    state.sourceBuffer = buf;
+    // default selection = best 0.8s hot segment
+    const cand = bestHotSegment(buf, 0.8);
+    state.selection.defStartSec = cand.startIdx / buf.sampleRate;
+    state.selection.defDurSec = 0.8;
+    state.selection.startSec = state.selection.defStartSec;
+    state.selection.durSec = state.selection.defDurSec;
+    commitSelection();
+    document.getElementById('status').textContent = `Loaded: ${file.name}. Selection ${formatTime(state.selection.startSec)}–${formatTime(state.selection.startSec+state.selection.durSec)}.`;
+    drawWaveform();
+  }
 
-      // pointer line
-      const pointer = document.createElement('div');
-      pointer.style.position = 'absolute';
-      pointer.style.left = '50%';
-      pointer.style.top = '50%';
-      pointer.style.width = '4px';
-      pointer.style.height = '35%';
-      pointer.style.background = 'var(--secondary)';
-      pointer.style.transformOrigin = '50% 100%';
-      knob.appendChild(pointer);
+  function formatTime(s){ const m=Math.floor(s/60), r=(s%60).toFixed(2).padStart(5,'0'); return `${m}:${r}`; }
 
-      // label text
-      const caption = document.createElement('div');
-      caption.style.position = 'absolute';
-      caption.style.bottom = '-1.1rem';
-      caption.style.width = '100%';
-      caption.style.textAlign = 'center';
-      caption.style.fontSize = '0.6rem';
-      caption.style.color = 'var(--highlight)';
-      caption.textContent = label;
-      knob.appendChild(caption);
+  function sliceBuffer(buffer, startSec, lenSec){
+    const sr = buffer.sampleRate;
+    const ch = buffer.numberOfChannels;
+    const start = Math.max(0, Math.floor(startSec*sr));
+    const length = Math.min(Math.floor(lenSec*sr), Math.floor(buffer.length - start));
+    const ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const out = ctx.createBuffer(1, length, sr); // mono for stability
+    const temp = new Float32Array(length);
+    // mix down to mono
+    for (let c=0; c<ch; c++){
+      const data = buffer.getChannelData(c);
+      for (let i=0;i<length;i++){ temp[i] += data[start+i]/ch; }
+    }
+    out.copyToChannel(temp, 0, 0);
+    return out;
+  }
 
-      // current value display
-      const valDisplay = document.createElement('div');
-      valDisplay.style.position = 'absolute';
-      valDisplay.style.top = '50%';
-      valDisplay.style.left = '50%';
-      valDisplay.style.transform = 'translate(-50%, -50%)';
-      valDisplay.style.fontSize = '0.55rem';
-      valDisplay.style.color = 'var(--secondary)';
-      valDisplay.textContent = value.toFixed(2) + units;
-      knob.appendChild(valDisplay);
+  function makeSeamlessLoop(buffer, crossfadeSec){
+    const sr = buffer.sampleRate;
+    const data = buffer.getChannelData(0);
+    const N = data.length;
+    const cf = Math.max(1, Math.floor(crossfadeSec*sr));
+    for (let i=0;i<cf;i++){
+      const t = i/(cf-1);
+      const head = data[i];
+      const tail = data[N-cf+i];
+      data[i] = head*t + tail*(1-t);
+      data[N-cf+i] = tail*t + head*(1-t);
+    }
+    return buffer;
+  }
 
-      element.appendChild(knob);
+  function bestHotSegment(buffer, segSec){
+    const sr = buffer.sampleRate; const N = buffer.length;
+    const data = new Float32Array(N);
+    for (let c=0;c<buffer.numberOfChannels;c++){
+      const ch = buffer.getChannelData(c);
+      for (let i=0;i<N;i++) data[i] += ch[i]/buffer.numberOfChannels;
+    }
+    const win = Math.max(1, Math.floor(segSec*sr));
+    const hop = Math.max(1, Math.floor(sr*0.01));
+    const pref = new Float32Array(N+1);
+    for (let i=0;i<N;i++){ const v=data[i]; pref[i+1]=pref[i]+v*v; }
+    let best=-1, bi=0;
+    for (let i=0;i+win<=N;i+=hop){ const e=pref[i+win]-pref[i]; if (e>best){ best=e; bi=i; } }
+    return { startIdx: bi, energy: best };
+  }
 
-      // internal state
-      let currentVal = value;
-      const minAngle = -135;
-      const maxAngle = 135;
-      function valToAngle(v) {
-        const ratio = (v - min) / (max - min);
-        return minAngle + ratio * (maxAngle - minAngle);
+  function commitSelection(){
+    if (!state.sourceBuffer) return;
+    const { startSec, durSec } = state.selection;
+    const seg = sliceBuffer(state.sourceBuffer, startSec, durSec);
+    const looped = makeSeamlessLoop(seg, 0.02);
+    state.sampleBuffer = looped;
+  }
+
+  // --- Waveform UI ---
+  const waveCanvas = document.getElementById('wave');
+  let waveCtx2d; let waveDPR = 1;
+  function resizeWave(){
+    const rect = waveCanvas.getBoundingClientRect();
+    waveDPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    waveCanvas.width = Math.max(300, Math.floor(rect.width * waveDPR));
+    waveCanvas.height = Math.max(120, Math.floor(rect.height * waveDPR));
+    waveCtx2d = waveCanvas.getContext('2d');
+    drawWaveform();
+  }
+  window.addEventListener('resize', resizeWave);
+
+  function drawWaveform(){
+    if (!waveCtx2d){ waveCtx2d = waveCanvas.getContext('2d'); }
+    const ctx = waveCtx2d; const w = waveCanvas.width; const h = waveCanvas.height;
+    ctx.clearRect(0,0,w,h);
+    // background
+    ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; // midline
+    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+    if (!state.sourceBuffer){
+      ctx.fillStyle = 'rgba(234,246,255,0.7)';
+      ctx.font = `${14*waveDPR}px Orbitron, sans-serif`; ctx.textAlign='center';
+      ctx.fillText('Upload audio to see waveform', w/2, h/2);
+      return;
+    }
+    const buf = state.sourceBuffer; const sr = buf.sampleRate; const data = buf.getChannelData(0);
+    const samplesPerCol = Math.max(1, Math.floor(data.length / w));
+    ctx.strokeStyle = 'rgba(27,208,255,0.9)'; ctx.lineWidth = Math.max(1, waveDPR);
+    ctx.beginPath();
+    for (let x=0; x<w; x++){
+      const start = x * samplesPerCol; const end = Math.min(data.length, start + samplesPerCol);
+      let min=1e9, max=-1e9; for (let i=start;i<end;i++){ const v=data[i]; if (v<min) min=v; if (v>max) max=v; }
+      const y1 = (1 - (max+1)/2) * h; const y2 = (1 - (min+1)/2) * h;
+      ctx.moveTo(x, y1); ctx.lineTo(x, y2);
+    }
+    ctx.stroke();
+
+    // selection overlay
+    const totalSec = buf.duration; const s = state.selection;
+    const selX = secToPx(s.startSec, totalSec, w);
+    const selW = secToPx(s.durSec, totalSec, w);
+    ctx.fillStyle = 'rgba(27,208,255,0.20)'; ctx.fillRect(selX, 0, selW, h);
+    ctx.strokeStyle = 'rgba(255,203,71,0.95)'; ctx.lineWidth = 2*waveDPR;
+    ctx.strokeRect(selX + waveDPR/2, waveDPR/2, Math.max(0, selW - waveDPR), h - waveDPR);
+    drawHandle(selX, h); drawHandle(selX+selW, h);
+  }
+  function drawHandle(x, h){
+    const ctx = waveCtx2d; const r = 6*waveDPR; const y=h/2;
+    ctx.fillStyle = 'rgba(255,203,71,0.95)';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    ctx.shadowColor = 'rgba(255,203,71,0.8)'; ctx.shadowBlur=8*waveDPR; ctx.beginPath(); ctx.arc(x, y, r/2, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  }
+  function secToPx(sec, totalSec, width){ return (sec/totalSec) * width; }
+  function pxToSec(px, totalSec, width){ return (px/width) * totalSec; }
+
+  const SEL_MAX = 4.0; const SEL_MIN = 0.1; const HANDLE_PX = 10;
+  let dragMode = null; let dragOffset = 0;
+  waveCanvas.addEventListener('pointerdown', (e)=>{
+    if (!state.sourceBuffer) return;
+    const rect = waveCanvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * waveDPR; const w = waveCanvas.width; const total = state.sourceBuffer.duration;
+    const s = state.selection; const selX = secToPx(s.startSec, total, w); const selW = secToPx(s.durSec, total, w);
+    if (Math.abs(x - selX) <= HANDLE_PX*waveDPR){ dragMode='left'; }
+    else if (Math.abs(x - (selX+selW)) <= HANDLE_PX*waveDPR){ dragMode='right'; }
+    else if (x>=selX && x<=selX+selW){ dragMode='move'; dragOffset = x - selX; }
+    else {
+      const half = selW/2; let nx = Math.max(0, Math.min(w - selW, x - half));
+      s.startSec = pxToSec(nx, total, w); commitSelection(); drawWaveform(); updateStatusSelection(); return;
+    }
+    function onMove(ev){
+      const x2 = (ev.clientX - rect.left) * waveDPR; let nx;
+      if (dragMode==='move'){
+        nx = Math.max(0, Math.min(w - selW, x2 - dragOffset));
+        s.startSec = pxToSec(nx, total, w);
+      } else if (dragMode==='left'){
+        nx = Math.max(0, Math.min(s.startSec + s.durSec - SEL_MIN, pxToSec(x2, total, w)));
+        const newStart = Math.min(nx, s.startSec + s.durSec - SEL_MIN);
+        const newDur = (s.startSec + s.durSec) - newStart;
+        s.startSec = newStart; s.durSec = Math.min(SEL_MAX, newDur);
+      } else if (dragMode==='right'){
+        const rightSec = pxToSec(x2, total, w);
+        const newDur = Math.max(SEL_MIN, Math.min(SEL_MAX, rightSec - s.startSec));
+        if (s.startSec + newDur > total) s.startSec = Math.max(0, total - newDur);
+        s.durSec = newDur;
       }
-      function angleToVal(a) {
-        const ratio = (a - minAngle) / (maxAngle - minAngle);
-        let v = min + ratio * (max - min);
-        v = Math.min(max, Math.max(min, v));
-        // snap to step
-        if (step) {
-          v = Math.round(v / step) * step;
-        }
-        return v;
-      }
-      function updateDisplay() {
-        pointer.style.transform = 'translate(-50%, -100%) rotate(' + valToAngle(currentVal) + 'deg)';
-        valDisplay.textContent = (units ? currentVal.toFixed(2) : currentVal.toFixed(2)) + units;
-      }
-      updateDisplay();
+      drawWaveform();
+    }
+    function onUp(){
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      dragMode=null; dragOffset=0;
+      commitSelection(); updateStatusSelection();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
 
-      let dragging = false;
-      knob.addEventListener('pointerdown', (e) => {
-        dragging = true;
-        knob.setPointerCapture(e.pointerId);
-      });
-      knob.addEventListener('pointerup', (e) => {
-        dragging = false;
-        knob.releasePointerCapture(e.pointerId);
-      });
-      knob.addEventListener('pointermove', (e) => {
-        if (!dragging) return;
-        const rect = knob.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = e.clientX - cx;
-        const dy = e.clientY - cy;
-        let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-        // clamp angle to range
-        if (angle < minAngle) angle = minAngle;
-        if (angle > maxAngle) angle = maxAngle;
-        currentVal = angleToVal(angle);
-        updateDisplay();
-        if (onChange) onChange(currentVal);
-      });
-      // Expose update function
-      return {
-        setValue(v) {
-          currentVal = Math.min(max, Math.max(min, v));
-          updateDisplay();
-        },
-        getValue() {
-          return currentVal;
+  function updateStatusSelection(){
+    const s = state.selection; document.getElementById('status').textContent = `Selection ${formatTime(s.startSec)}–${formatTime(s.startSec+s.durSec)} | Pitch ${state.pitchSemis} st`;
+  }
+
+  // --- UI: Knobs ---
+  class Knob {
+    constructor(el){
+      this.el = el;
+      this.id = el.dataset.id;
+      this.min = parseFloat(el.dataset.min);
+      this.max = parseFloat(el.dataset.max);
+      this.step = parseFloat(el.dataset.step || '0.01');
+      this.value = parseFloat(el.dataset.value);
+      this.unit = el.dataset.unit || '';
+      this.startY = 0; this.startVal = 0; this.active=false;
+      this.render();
+      this.update();
+      this.bind();
+    }
+    render(){
+      this.el.innerHTML = `
+        <div class="dial"><div class="tick"></div></div>
+        <label>${this.id}</label>
+        <div class="readout"></div>
+      `;
+      this.tick = this.el.querySelector('.tick');
+      this.readout = this.el.querySelector('.readout');
+    }
+    valueToAngle(v){ const t = (v - this.min) / (this.max - this.min); return -120 + t*240; }
+    update(){
+      const ang = this.valueToAngle(this.value);
+      this.tick.style.transform = `translate(-50%,-85%) rotate(${ang}deg)`;
+      const show = (this.unit==="Hz"? Math.round(this.value): (this.unit==="ms"? Math.round(this.value) : parseFloat(this.value.toFixed(2))));
+      this.readout.textContent = `${show} ${this.unit}`;
+      this.el.dataset.value = String(this.value);
+      this.onchange && this.onchange(this.value);
+    }
+    bind(){
+      const sens = (this.max - this.min) / 200;
+      const onMove = (e)=>{
+        if (!this.active) return; e.preventDefault();
+        const dy = (e.touches? e.touches[0].clientY : e.clientY) - this.startY;
+        let v = this.startVal - dy*sens; v = Math.round(v/this.step)*this.step; v = Math.min(this.max, Math.max(this.min, v));
+        this.value = v; this.update();
+      };
+      const onUp = ()=>{ this.active=false; window.removeEventListener('mousemove',onMove); window.removeEventListener('touchmove',onMove); window.removeEventListener('mouseup',onUp); window.removeEventListener('touchend',onUp); };
+      this.el.addEventListener('mousedown',(e)=>{ this.active=true; this.startY=e.clientY; this.startVal=this.value; window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp); });
+      this.el.addEventListener('touchstart',(e)=>{ this.active=true; this.startY=e.touches[0].clientY; this.startVal=this.value; window.addEventListener('touchmove',onMove,{passive:false}); window.addEventListener('touchend',onUp); }, {passive:true});
+      this.el.addEventListener('dblclick',()=>{ this.value = parseFloat(this.el.dataset.valueDefault||this.el.dataset.value); this.update(); });
+    }
+  }
+
+  const knobs = {};
+  function initKnobs(){
+    document.querySelectorAll('.knob').forEach(el=>{
+      el.dataset.valueDefault = el.dataset.value;
+      const k = new Knob(el); knobs[k.id]=k;
+      k.onchange = (val)=>{
+        switch(k.id){
+          case 'pitch': state.pitchSemis = Math.round(val); updateStatusSelection(); break;
+          case 'cutoff': state.filterCutoff = val; if (state.nodes.filter) state.nodes.filter.frequency.setTargetAtTime(val, audioCtx?.currentTime||0, 0.02); break;
+          case 'attack': state.env.attack = val; break;
+          case 'decay': state.env.decay = val; break;
+          case 'sustain': state.env.sustain = val; break;
+          case 'delayTime': state.delay.timeMs = val; if (state.nodes.delay) state.nodes.delay.delayTime.setTargetAtTime(val/1000, audioCtx?.currentTime||0, 0.03); break;
+          case 'feedback': state.delay.feedback = val; if (state.nodes.feedback) state.nodes.feedback.gain.setTargetAtTime(val, audioCtx?.currentTime||0, 0.03); break;
+          case 'mix': state.delay.mix = val; if (state.nodes.wet && state.nodes.dry){ state.nodes.wet.gain.setTargetAtTime(val, audioCtx?.currentTime||0, 0.03); state.nodes.dry.gain.setTargetAtTime(1-val, audioCtx?.currentTime||0, 0.03);} break;
         }
       };
-    }
+    });
+  }
 
-    // Draw waveform
-    const canvas = document.getElementById('waveform');
-    const ctx = canvas.getContext('2d');
-    let waveData = null; // Float32Array for one channel to draw
+  // --- Keyboard UI ---
+  const keyboardEl = document.getElementById('keyboard');
 
-    function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      drawWaveform();
-      drawSelection();
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-
-    function drawWaveform() {
-      if (!waveData) {
-        ctx.fillStyle = varColor('--panel-bg');
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        return;
-      }
-      const width = canvas.width;
-      const height = canvas.height;
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = varColor('--bg-color');
-      ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = varColor('--primary');
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      const step = Math.ceil(waveData.length / width);
-      for (let i = 0; i < width; i++) {
-        const start = i * step;
-        let min = 1, max = -1;
-        for (let j = 0; j < step; j++) {
-          const val = waveData[start + j] || 0;
-          if (val < min) min = val;
-          if (val > max) max = val;
-        }
-        const y1 = (1 - (min + 1) / 2) * height;
-        const y2 = (1 - (max + 1) / 2) * height;
-        ctx.moveTo(i, y1);
-        ctx.lineTo(i, y2);
-      }
-      ctx.stroke();
-    }
-
-    function drawSelection() {
-      const selEl = document.getElementById('selection');
-      if (!sampleBuffer || selection.end <= selection.start) {
-        selEl.style.display = 'none';
-        return;
-      }
-      const bufferLength = sampleBuffer.length;
-      const width = canvas.clientWidth;
-      const startX = (selection.start / bufferLength) * width;
-      const endX = (selection.end / bufferLength) * width;
-      selEl.style.display = 'block';
-      selEl.style.left = startX + 'px';
-      selEl.style.width = (endX - startX) + 'px';
-    }
-
-    function varColor(name) {
-      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    }
-
-    // Region drag/resizing
-    let draggingRegion = false;
-    let resizingLeft = false;
-    let resizingRight = false;
-
-    const selectionEl = document.getElementById('selection');
-    let dragStartX = 0;
-    let origStart = 0;
-    let origEnd = 0;
-
-    function handlePointerDown(e) {
-      if (!sampleBuffer) return;
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const bufferLen = sampleBuffer.length;
-      const selStartX = (selection.start / bufferLen) * rect.width;
-      const selEndX = (selection.end / bufferLen) * rect.width;
-      const edgeTolerance = 6;
-      if (Math.abs(clickX - selStartX) < edgeTolerance) {
-        resizingLeft = true;
-      } else if (Math.abs(clickX - selEndX) < edgeTolerance) {
-        resizingRight = true;
-      } else if (clickX > selStartX && clickX < selEndX) {
-        draggingRegion = true;
-      } else {
-        // click outside: recenter around click; maintain duration
-        const regionLen = selection.end - selection.start;
-        let newStart = Math.floor((clickX / rect.width) * bufferLen - regionLen / 2);
-        newStart = Math.max(0, Math.min(bufferLen - regionLen, newStart));
-        selection.start = newStart;
-        selection.end = newStart + regionLen;
-        updateLoopBuffer();
-        drawSelection();
-        return;
-      }
-      dragStartX = clickX;
-      origStart = selection.start;
-      origEnd = selection.end;
-    }
-
-    function handlePointerMove(e) {
-      if (!draggingRegion && !resizingLeft && !resizingRight) return;
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const bufferLen = sampleBuffer.length;
-      const dx = e.clientX - rect.left - dragStartX;
-      const deltaSamples = Math.round((dx / rect.width) * bufferLen);
-      const minLen = Math.floor(0.1 * audioCtx.sampleRate); // 0.1s
-      const maxLen = Math.floor(4.0 * audioCtx.sampleRate); // 4s
-      if (draggingRegion) {
-        let newStart = origStart + deltaSamples;
-        let newEnd = origEnd + deltaSamples;
-        const regionLen = newEnd - newStart;
-        if (newStart < 0) {
-          newEnd -= newStart;
-          newStart = 0;
-        }
-        if (newEnd > bufferLen) {
-          const overflow = newEnd - bufferLen;
-          newStart -= overflow;
-          newEnd = bufferLen;
-        }
-        selection.start = newStart;
-        selection.end = newEnd;
-      } else if (resizingLeft) {
-        let newStart = origStart + deltaSamples;
-        newStart = Math.max(0, Math.min(newStart, selection.end - minLen));
-        const newLen = selection.end - newStart;
-        if (newLen > maxLen) {
-          newStart = selection.end - maxLen;
-        }
-        selection.start = newStart;
-      } else if (resizingRight) {
-        let newEnd = origEnd + deltaSamples;
-        newEnd = Math.min(bufferLen, Math.max(newEnd, selection.start + minLen));
-        const newLen = newEnd - selection.start;
-        if (newLen > maxLen) {
-          newEnd = selection.start + maxLen;
-        }
-        selection.end = newEnd;
-      }
-      drawSelection();
-    }
-
-    function handlePointerUp(e) {
-      if (draggingRegion || resizingLeft || resizingRight) {
-        updateLoopBuffer();
-      }
-      draggingRegion = resizingLeft = resizingRight = false;
-    }
-
-    canvas.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-
-    function updateWaveData() {
-      if (!sampleBuffer) return;
-      // Use first channel for display
-      waveData = sampleBuffer.getChannelData(0);
-      drawWaveform();
-      drawSelection();
-    }
-
-    function findBestRegion() {
-      const maxLen = Math.min(sampleBuffer.length, audioCtx.sampleRate * 10);
-      const windowSize = Math.floor(0.8 * audioCtx.sampleRate);
-      if (windowSize >= maxLen) {
-        selection.start = 0;
-        selection.end = maxLen;
-        return;
-      }
-      let bestEnergy = 0;
-      let bestStart = 0;
-      const channelData = sampleBuffer.getChannelData(0);
-      let sumSq = 0;
-      // compute initial window energy
-      for (let i = 0; i < windowSize; i++) {
-        const s = channelData[i];
-        sumSq += s * s;
-      }
-      bestEnergy = sumSq;
-      bestStart = 0;
-      for (let i = windowSize; i < maxLen; i++) {
-        const enter = channelData[i];
-        const exit = channelData[i - windowSize];
-        sumSq += enter * enter - exit * exit;
-        if (sumSq > bestEnergy) {
-          bestEnergy = sumSq;
-          bestStart = i - windowSize + 1;
-        }
-      }
-      selection.start = bestStart;
-      selection.end = bestStart + windowSize;
-    }
-
-    function updateLoopBuffer() {
-      if (!sampleBuffer) return;
-      const start = selection.start;
-      const end = selection.end;
-      const length = end - start;
-      const cross = Math.min(Math.floor(0.02 * audioCtx.sampleRate), Math.floor(length / 2));
-      loopBuffer = audioCtx.createBuffer(
-        sampleBuffer.numberOfChannels,
-        length,
-        sampleBuffer.sampleRate
-      );
-      for (let ch = 0; ch < sampleBuffer.numberOfChannels; ch++) {
-        const dest = loopBuffer.getChannelData(ch);
-        const src = sampleBuffer.getChannelData(ch);
-        // Copy segment
-        dest.set(src.subarray(start, end));
-        // Crossfade edges
-        for (let i = 0; i < cross; i++) {
-          const fadeIn = i / cross;
-          const fadeOut = 1 - fadeIn;
-          // start portion mixing last cross samples (wrap)
-          dest[i] = dest[i] * fadeIn + dest[length - cross + i] * fadeOut;
-          dest[length - cross + i] =
-            dest[length - cross + i] * fadeOut + dest[i] * fadeIn;
-        }
-      }
-      drawSelection();
-      // Update status display times
-      const startSec = start / sampleBuffer.sampleRate;
-      const endSec = end / sampleBuffer.sampleRate;
-      const statusEl = document.getElementById('status');
-      statusEl.textContent =
-        'Selection ' +
-        startSec.toFixed(2) +
-        '–' +
-        endSec.toFixed(2) +
-        's | Pitch ' +
-        (pitchSemitones >= 0 ? '+' : '') +
-        pitchSemitones +
-        ' st';
-    }
-
-    function stopAllVoices() {
-      for (const src of allSources) {
-        try {
-          src.stop();
-        } catch (e) {}
-      }
-      activeVoices.clear();
-      allSources.clear();
-      // Remove active classes
-      document.querySelectorAll('.key.active').forEach(k => k.classList.remove('active'));
-    }
-
-    // Play a midi note
-    function playNote(midi) {
-      if (!loopBuffer) return;
-      const source = audioCtx.createBufferSource();
-      source.buffer = loopBuffer;
-      source.loop = true;
-      // Compute playback rate based on semitones
-      const baseMidi = 60; // sample root note
-      const totalSemitones = midi - baseMidi + pitchSemitones;
-      const rate = Math.pow(2, totalSemitones / 12);
-      source.playbackRate.value = rate;
-      // Per-voice envelope
-      const gainNode = audioCtx.createGain();
-      // Connect to global nodes
-      connectVoiceNodes(gainNode);
-      // Envelope: attack, decay, sustain
-      const now = audioCtx.currentTime;
-      const attackEnd = now + state.attack;
-      const decayEnd = attackEnd + state.decay;
-      gainNode.gain.cancelScheduledValues(now);
-      gainNode.gain.setValueAtTime(0.0, now);
-      gainNode.gain.linearRampToValueAtTime(1.0, attackEnd);
-      gainNode.gain.linearRampToValueAtTime(state.sustain, decayEnd);
-      source.connect(gainNode);
-      source.start();
-
-      // Track voice
-      if (!activeVoices.has(midi)) {
-        activeVoices.set(midi, new Set());
-      }
-      activeVoices.get(midi).add({source, gain: gainNode});
-      allSources.add(source);
-    }
-
-    // Release note
-    function stopNote(midi) {
-      const voices = activeVoices.get(midi);
-      if (!voices) return;
-      for (const {source, gain} of voices) {
-        const now = audioCtx.currentTime;
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(gain.gain.value, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.05);
-        try {
-          source.stop(now + 0.05);
-        } catch (e) {}
-        allSources.delete(source);
-      }
-      activeVoices.delete(midi);
-    }
-
-    // Build keyboard
-    function buildKeyboard() {
-      const kb = document.getElementById('keyboard');
-      kb.innerHTML = '';
-      // We'll build 2 octaves starting from C4
-      const octaves = 2;
-      const startMidi = 60; // C4
-      const noteOrder = [
-        {type: 'white', offset: 0}, // C
-        {type: 'black', offset: 1}, // C#
-        {type: 'white', offset: 2}, // D
-        {type: 'black', offset: 3}, // D#
-        {type: 'white', offset: 4}, // E
-        {type: 'white', offset: 5}, // F
-        {type: 'black', offset: 6}, // F#
-        {type: 'white', offset: 7}, // G
-        {type: 'black', offset: 8}, // G#
-        {type: 'white', offset: 9}, // A
-        {type: 'black', offset: 10}, // A#
-        {type: 'white', offset: 11}, // B
-      ];
-      let keyIndex = 0;
-      for (let oct = 0; oct < octaves; oct++) {
-        for (let ni = 0; ni < noteOrder.length; ni++) {
-          const note = noteOrder[ni];
-          const midi = startMidi + oct * 12 + note.offset;
-          const key = document.createElement('div');
-          key.classList.add('key');
-          key.classList.add(note.type);
-          key.dataset.midi = midi;
-          key.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            playNote(midi);
-            key.classList.add('active');
-          });
-          key.addEventListener('pointerup', (e) => {
-            e.preventDefault();
-            stopNote(midi);
-            key.classList.remove('active');
-          });
-          key.addEventListener('pointerleave', (e) => {
-            if (e.pointerType === 'mouse' && key.classList.contains('active')) {
-              stopNote(midi);
-              key.classList.remove('active');
-            }
-          });
-          kb.appendChild(key);
+  function buildKeyboard(octaves=3){
+    keyboardEl.innerHTML='';
+    state.keyElems.clear();
+    const whiteW = 46; // must match CSS
+    let whiteIndex = 0;
+    // pass 1: whites
+    for (let o=0;o<octaves;o++){
+      for (let s=0;s<12;s++){
+        const isBlack = [1,3,6,8,10].includes(s);
+        if (!isBlack){
+          const left = (whiteIndex)*whiteW + 14; // padding
+          const key = makeKey({ className:'white', left, noteOffset: o*12 + s });
+          keyboardEl.appendChild(key.el); whiteIndex++;
         }
       }
     }
-
-    // Keyboard mapping events
-    const keyToMidi = new Map();
-    function buildKeyMapping() {
-      // map first 24 keys from keyboardMapping to our keys (two octaves)
-      const startMidi = 60;
-      for (let i = 0; i < keyboardMapping.length; i++) {
-        const keyChar = keyboardMapping[i];
-        const midi = startMidi + i;
-        keyToMidi.set(keyChar, midi);
+    // center width for content + padding
+    const totalWhites = whiteIndex;
+    keyboardEl.style.width = (14 + totalWhites*whiteW + 14) + 'px';
+    keyboardEl.style.margin = '0 auto';
+    // pass 2: blacks
+    whiteIndex = 0;
+    for (let o=0;o<octaves;o++){
+      for (let s=0;s<12;s++){
+        const isBlack = [1,3,6,8,10].includes(s);
+        if (!isBlack){ whiteIndex++; continue; }
+        const left = (whiteIndex*whiteW + 14) - whiteW*0.3;
+        const key = makeKey({ className:'black', left, noteOffset:o*12 + s });
+        keyboardEl.appendChild(key.el);
       }
     }
+  }
 
-    window.addEventListener('keydown', (e) => {
-      const key = e.key.toLowerCase();
-      if (keyToMidi.has(key) && !e.repeat) {
-        const midi = keyToMidi.get(key);
-        playNote(midi);
-        // highlight visual key
-        const el = document.querySelector('.key[data-midi="' + midi + '"]');
-        if (el) el.classList.add('active');
-      }
-    });
-    window.addEventListener('keyup', (e) => {
-      const key = e.key.toLowerCase();
-      if (keyToMidi.has(key)) {
-        const midi = keyToMidi.get(key);
-        stopNote(midi);
-        const el = document.querySelector('.key[data-midi="' + midi + '"]');
-        if (el) el.classList.remove('active');
-      }
-    });
+  function makeKey({className, left, noteOffset}){
+    const el = document.createElement('div'); el.className = `key ${className}`; el.style.left = left+'px'; el.dataset.noteOffset = String(noteOffset);
+    const label = document.createElement('div'); label.className='label'; label.textContent=''; el.appendChild(label);
+    state.keyElems.set(noteOffset, el);
+    let midiDown = null;
+    const on = ()=>{ const midi = state.baseMidi + noteOffset; midiDown = midi; startVoice(midi); el.classList.add('active'); };
+    const off = ()=>{ if (midiDown!==null){ stopVoice(midiDown); midiDown=null; } el.classList.remove('active'); };
+    el.addEventListener('mousedown', ()=>{ ensureAudio(); on(); const up=()=>{off(); window.removeEventListener('mouseup',up)}; window.addEventListener('mouseup',up)});
+    el.addEventListener('touchstart', (e)=>{ ensureAudio(); on(); e.preventDefault(); const end=()=>{off(); window.removeEventListener('touchend',end)}; window.addEventListener('touchend',end)},{passive:false});
+    return { el };
+  }
 
-    // File upload
-    const fileInput = document.getElementById('fileInput');
-    document.getElementById('uploadBtn').addEventListener('click', () => {
-      fileInput.click();
-    });
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const maxSize = 30 * 1024 * 1024; // 30 MB
-      if (file.size > maxSize) {
-        alert('File exceeds 30MB. Please choose a smaller file.');
-        fileInput.value = '';
-        return;
-      }
-      const arrayBuffer = await file.arrayBuffer();
-      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-      // Limit to 10 seconds
-      const maxLenSamples = Math.min(audioBuffer.length, Math.floor(10 * audioBuffer.sampleRate));
-      if (maxLenSamples < audioBuffer.length) {
-        // slice to 10 seconds
-        sampleBuffer = audioCtx.createBuffer(audioBuffer.numberOfChannels, maxLenSamples, audioBuffer.sampleRate);
-        for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-          sampleBuffer.copyToChannel(audioBuffer.getChannelData(ch).subarray(0, maxLenSamples), ch);
-        }
-      } else {
-        sampleBuffer = audioBuffer;
-      }
-      // Setup audio nodes once sample loaded
-      setupAudioNodes();
-      // Determine best region
-      findBestRegion();
-      updateLoopBuffer();
-      updateWaveData();
-      fileInput.value = '';
-    });
+  const keyMap = {'z':0,'s':1,'x':2,'d':3,'c':4,'v':5,'g':6,'b':7,'h':8,'n':9,'j':10,'m':11,',':12,'l':13,'.':14,';':15,'/':16};
 
-    // Load demo tone: simple sine wave sample
-    document.getElementById('demoBtn').addEventListener('click', async () => {
-      const duration = 1;
-      const sr = audioCtx.sampleRate;
-      sampleBuffer = audioCtx.createBuffer(1, sr * duration, sr);
-      const data = sampleBuffer.getChannelData(0);
-      const freq = 440; // A4
-      for (let i = 0; i < data.length; i++) {
-        data[i] = Math.sin(2 * Math.PI * freq * i / sr);
-      }
-      setupAudioNodes();
-      selection.start = 0;
-      selection.end = data.length;
-      updateLoopBuffer();
-      updateWaveData();
-    });
+  window.addEventListener('keydown',(e)=>{
+    const k = e.key.toLowerCase();
+    if (!(k in keyMap)) return;
+    if (state.pressed.has(k)) return;
+    state.pressed.add(k);
+    const off = keyMap[k];
+    const midi = state.baseMidi + off;
+    state.keyMidi.set(k, midi);
+    const el = state.keyElems.get(off); if (el) el.classList.add('active');
+    startVoice(midi);
+  });
+  window.addEventListener('keyup',(e)=>{
+    const k = e.key.toLowerCase(); if (!(k in keyMap)) return; state.pressed.delete(k);
+    const off = keyMap[k]; const el = state.keyElems.get(off); if (el) el.classList.remove('active');
+    const midi = state.keyMidi.get(k);
+    if (midi!==undefined){ stopVoice(midi); state.keyMidi.delete(k); }
+  });
 
-    // Reset button
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      stopAllVoices();
-      // Reset state and knobs to defaults
-      state.cutoff = 4000;
-      state.attack = 0.02;
-      state.decay = 0.1;
-      state.sustain = 0.7;
-      state.delayTime = 0.25;
-      state.feedback = 0.4;
-      state.mix = 0.3;
-      pitchSemitones = 0;
-      cutoffControl.setValue(state.cutoff);
-      attackControl.setValue(state.attack);
-      decayControl.setValue(state.decay);
-      sustainControl.setValue(state.sustain);
-      delayTimeControl.setValue(state.delayTime);
-      feedbackControl.setValue(state.feedback);
-      mixControl.setValue(state.mix);
-      pitchControl.setValue(0);
-      updateGlobalNodes();
-      if (sampleBuffer) {
-        findBestRegion();
-        updateLoopBuffer();
-        drawSelection();
-      }
-    });
-
-    // Initialise knobs
-    const cutoffControl = createKnob(document.getElementById('cutoffKnob'), {
-      min: 200,
-      max: 8000,
-      value: state.cutoff,
-      step: 10,
-      units: ' Hz',
-      label: 'cutoff',
-      onChange: (v) => {
-        state.cutoff = v;
-        updateGlobalNodes();
-      }
-    });
-    const attackControl = createKnob(document.getElementById('attackKnob'), {
-      min: 0.001,
-      max: 1.0,
-      value: state.attack,
-      step: 0.001,
-      units: ' s',
-      label: 'attack',
-      onChange: (v) => {
-        state.attack = v;
-      }
-    });
-    const decayControl = createKnob(document.getElementById('decayKnob'), {
-      min: 0.01,
-      max: 1.0,
-      value: state.decay,
-      step: 0.005,
-      units: ' s',
-      label: 'decay',
-      onChange: (v) => {
-        state.decay = v;
-      }
-    });
-    const sustainControl = createKnob(document.getElementById('sustainKnob'), {
-      min: 0.0,
-      max: 1.0,
-      value: state.sustain,
-      step: 0.05,
-      units: '',
-      label: 'sustain',
-      onChange: (v) => {
-        state.sustain = v;
-      }
-    });
-    const delayTimeControl = createKnob(document.getElementById('delayTimeKnob'), {
-      min: 0.0,
-      max: 1.0,
-      value: state.delayTime,
-      step: 0.01,
-      units: ' s',
-      label: 'delayTime',
-      onChange: (v) => {
-        state.delayTime = v;
-        updateGlobalNodes();
-      }
-    });
-    const feedbackControl = createKnob(document.getElementById('feedbackKnob'), {
-      min: 0.0,
-      max: 0.9,
-      value: state.feedback,
-      step: 0.01,
-      units: '',
-      label: 'feedback',
-      onChange: (v) => {
-        state.feedback = v;
-        updateGlobalNodes();
-      }
-    });
-    const mixControl = createKnob(document.getElementById('mixKnob'), {
-      min: 0.0,
-      max: 1.0,
-      value: state.mix,
-      step: 0.01,
-      units: '',
-      label: 'mix',
-      onChange: (v) => {
-        state.mix = v;
-        updateGlobalNodes();
-      }
-    });
-    const pitchControl = createKnob(document.getElementById('pitchKnob'), {
-      min: -12,
-      max: 12,
-      value: pitchSemitones,
-      step: 1,
-      units: ' st',
-      label: 'pitch',
-      onChange: (v) => {
-        pitchSemitones = Math.round(v);
-        // update status
-        if (sampleBuffer) {
-          const startSec = selection.start / sampleBuffer.sampleRate;
-          const endSec = selection.end / sampleBuffer.sampleRate;
-          document.getElementById('status').textContent =
-            'Selection ' +
-            startSec.toFixed(2) +
-            '–' +
-            endSec.toFixed(2) +
-            's | Pitch ' +
-            (pitchSemitones >= 0 ? '+' : '') +
-            pitchSemitones +
-            ' st';
-        }
-      }
-    });
-
-    // Build keyboard and mapping
-    buildKeyboard();
-    buildKeyMapping();
-    resizeCanvas();
-
-    // Helper to resume audio context on first interaction
-    function ensureAudio() {
-      if (audioCtx.state !== 'running') {
-        audioCtx.resume();
-      }
+  // --- File input ---
+  const fileInput = document.getElementById('fileInput');
+  fileInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if (!file) return;
+    const MAX_BYTES = 30 * 1024 * 1024; // 30 MB limit
+    if (file.size > MAX_BYTES){
+      document.getElementById('status').textContent = 'File too large (max 30 MB). Please choose a smaller file.';
+      e.target.value = '';
+      return;
     }
-    document.body.addEventListener('pointerdown', ensureAudio, {once: true});
+    await loadAudioFile(file);
+  });
+
+  // Demo tone
+  document.getElementById('demoBtn').addEventListener('click', async ()=>{
+    ensureAudio();
+    const sr = audioCtx.sampleRate || 44100; const dur = 3.0; const buf = audioCtx.createBuffer(1, Math.floor(sr*dur), sr);
+    const d = buf.getChannelData(0);
+    const f0 = 220; const freqs=[f0, f0*5/4, f0*3/2];
+    for (let i=0;i<d.length;i++){
+      let t=i/sr; let v=0; for (const f of freqs){ v += 2/Math.PI * Math.asin(Math.sin(2*Math.PI*f*t)); }
+      const a = Math.min(1, i/(sr*0.02)); const rel = Math.max(0, 1 - (i - sr*(dur-0.05))/(sr*0.05));
+      d[i] = (v/3) * a * rel * 0.3;
+    }
+    state.sourceBuffer = buf;
+    const cand = bestHotSegment(buf, 0.8);
+    state.selection.defStartSec = cand.startIdx / buf.sampleRate;
+    state.selection.defDurSec = 0.8;
+    state.selection.startSec = state.selection.defStartSec;
+    state.selection.durSec = state.selection.defDurSec;
+    commitSelection();
+    document.getElementById('status').textContent = 'Demo tone loaded. Drag selection to choose a new segment.';
+    drawWaveform();
+  });
+
+  function doReset(){
+    stopAllVoices();
+    state.env = { ...DEFAULTS.env };
+    state.filterCutoff = DEFAULTS.cutoff;
+    state.delay = { ...DEFAULTS.delay };
+    state.pitchSemis = DEFAULTS.pitch;
+    const setKnob=(id,val)=>{ const k=knobs[id]; if(k){ k.value=val; k.update(); }}
+    setKnob('attack', state.env.attack);
+    setKnob('decay', state.env.decay);
+    setKnob('sustain', state.env.sustain);
+    setKnob('cutoff', state.filterCutoff);
+    setKnob('delayTime', state.delay.timeMs);
+    setKnob('feedback', state.delay.feedback);
+    setKnob('mix', state.delay.mix);
+    setKnob('pitch', state.pitchSemis);
+    if (state.sourceBuffer){
+      state.selection.startSec = state.selection.defStartSec;
+      state.selection.durSec = state.selection.defDurSec;
+      commitSelection(); drawWaveform(); updateStatusSelection();
+    }
+    const st = document.getElementById('status'); st.textContent += ' | Stopped & reset';
+  }
+
+  document.getElementById('emergencyResetBtn').addEventListener('click', doReset);
+
+  // --- Visual Pulse ---
+  function startPulseVisuals(){
+    ensureAudio();
+    const analyser = state.analyser;
+    const led = document.getElementById('led');
+    const app = document.getElementById('app');
+    const data = new Uint8Array(analyser.fftSize);
+    function frame(){
+      analyser.getByteTimeDomainData(data);
+      let sum=0; for(let i=0;i<data.length;i++){ const v=(data[i]-128)/128; sum+=v*v; }
+      const rms = Math.sqrt(sum/data.length);
+      const pulse = Math.min(1, rms*3.2);
+      app.style.setProperty('--pulse', pulse);
+      led.style.filter = `brightness(${0.8 + pulse*1.6})`;
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  // --- Self-tests (console) ---
+  function runSelfTests(){
+    try{
+      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      const sr = ctx.sampleRate || 44100;
+      const buf = ctx.createBuffer(1, sr*2, sr);
+      const sl = sliceBuffer(buf, 0.5, 1.0);
+      console.assert(sl.length === Math.floor(sr*1.0), 'sliceBuffer length mismatch');
+      const loop = makeSeamlessLoop(ctx.createBuffer(1, (sr*0.8)|0, sr), 0.02);
+      console.assert(loop.length > 0, 'makeSeamlessLoop produced empty buffer');
+      const buf2 = ctx.createBuffer(1, sr*2, sr); const d2 = buf2.getChannelData(0);
+      const start = Math.floor(0.5*sr), end = Math.floor((0.5+0.8)*sr); for(let i=start;i<end;i++){ d2[i] = 0.8; }
+      const cand2 = bestHotSegment(buf2, 0.8); const startTime2 = cand2 ? cand2.startIdx / sr : -1;
+      console.assert(Math.abs(startTime2 - 0.5) < 0.05, 'hot segment detection off');
+      state.sampleBuffer = ctx.createBuffer(1, Math.floor(sr*0.5), sr);
+      const midi = 60; startVoice(midi); startVoice(midi);
+      const before = (state.voices.get(midi)||new Set()).size; console.assert(before>=2, 'did not track multiple voices');
+      stopVoice(midi); const after = (state.voices.get(midi)||new Set()).size; console.assert(after===0, 'stopVoice did not clear all voices for midi');
+      const rUp = Math.pow(2, ((state.baseMidi - state.baseMidi + 12)/12)); console.assert(Math.abs(rUp-2.0)<1e-6, '+12 st -> 2x rate');
+      const rDn = Math.pow(2, ((state.baseMidi - state.baseMidi - 12)/12)); console.assert(Math.abs(rDn-0.5)<1e-6, '-12 st -> 0.5x rate');
+      const total = 10; const max=4; let s0={startSec:9.5,durSec:2};
+      s0 = clampSelection(s0, total, max); console.assert(s0.startSec + s0.durSec <= total + 1e-9, 'selection exceeds total'); console.assert(s0.durSec<=max+1e-9, 'selection exceeds max');
+      console.log('[Synth Anything] Self-tests passed');
+    }catch(err){ console.warn('[Synth Anything] Self-tests failed', err); }
+  }
+
+  function clampSelection(sel, totalSec, maxDur){
+    const SEL_MIN = 0.1;
+    const out = { startSec: Math.max(0, sel.startSec), durSec: Math.max(SEL_MIN, Math.min(maxDur, sel.durSec)) };
+    if (out.startSec + out.durSec > totalSec){ out.startSec = Math.max(0, totalSec - out.durSec); }
+    return out;
+  }
+
+  // Init
+  initKnobs();
+  buildKeyboard(3);
+  resizeWave();
+  runSelfTests();
+
+  // Accessibility: resume audio on user gesture anywhere
+  window.addEventListener('pointerdown', ensureAudio, { once:true });
+
   </script>
 </body>
 </html>
