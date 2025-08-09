@@ -25,7 +25,16 @@
       linear-gradient(180deg, var(--bg2), var(--bg1));
       color:var(--text); font-family: 'Orbitron', system-ui, sans-serif;}
 
-    #app{max-width:1100px;margin:24px auto;padding:24px;border-radius:18px;background:linear-gradient(180deg, rgba(6,29,49,.84), rgba(1,18,30,.84)); position:relative; overflow:hidden; box-shadow:0 0 calc(26px + 60px*var(--pulse)) rgba(27,208,255,.18), 0 0 calc(12px + 32px*var(--pulse)) rgba(255,203,71,.18), inset 0 0 60px rgba(255,255,255,.04);}    
+    /*
+      Make the main application container fill the available horizontal space.  Instead of
+      constraining the UI to a fixed max‑width, allow it to grow and shrink with the
+      viewport.  The actual scaling is handled via a JavaScript resize listener
+      (see the script at the bottom of this file), which applies a transform so the
+      entire UI scales proportionally when the window becomes narrower than the
+      design’s base width.  Removing the max‑width here lets the scaling script
+      determine the rendered width dynamically.
+    */
+    #app{width:100%;margin:24px auto;padding:24px;border-radius:18px;background:linear-gradient(180deg, rgba(6,29,49,.84), rgba(1,18,30,.84)); position:relative; overflow:hidden; box-shadow:0 0 calc(26px + 60px*var(--pulse)) rgba(27,208,255,.18), 0 0 calc(12px + 32px*var(--pulse)) rgba(255,203,71,.18), inset 0 0 60px rgba(255,255,255,.04);}    
     header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
     header h1{font-family:'Audiowide', system-ui; letter-spacing:0.04em;margin:0;font-size:28px; text-shadow:0 0 16px rgba(27,208,255,.55), 0 0 26px rgba(255,203,71,.45)}
     header h1 .tagline{font-size:14px;margin-left:12px;opacity:.95;}
@@ -711,6 +720,41 @@
 
   // Accessibility: resume audio on user gesture anywhere
   window.addEventListener('pointerdown', ensureAudio, { once:true });
+
+  /*
+    -------- Responsive Scaling -------------------------------------------------
+    The original Synth Anything interface was designed with a fixed canvas width
+    (about 1100px).  On very narrow screens the UI could overflow and require
+    horizontal scrolling.  To improve usability on small devices we scale the
+    entire application proportionally to the window width.  A base width of
+    1100px is used; when the viewport is narrower than this, the app is scaled
+    down so that it fits within the available space.  Conversely, when the
+    viewport is wider than the base width the app is rendered at its natural
+    size.  This keeps all interactive controls visible without breaking the
+    layout.
+
+    The scaling is achieved via a CSS transform applied to the root #app
+    container.  We choose the origin to be the top center so the interface
+    remains centered.  A resize listener updates the scale factor on demand.
+  */
+  const BASE_APP_WIDTH = 1100; // width the UI was originally designed for
+  function scaleApp(){
+    const app = document.getElementById('app');
+    if (!app) return;
+    const vw = window.innerWidth;
+    // limit scaling to values <= 1 to avoid enlarging UI beyond original size
+    const scale = Math.min(1, vw / BASE_APP_WIDTH);
+    app.style.width = BASE_APP_WIDTH + 'px';
+    app.style.transform = `scale(${scale})`;
+    app.style.transformOrigin = 'top center';
+    // centre horizontally by adjusting margin when scaled down
+    const scaledWidth = BASE_APP_WIDTH * scale;
+    app.style.marginLeft = ((vw - scaledWidth) / 2) + 'px';
+    app.style.marginRight = app.style.marginLeft;
+  }
+  // apply scaling immediately and whenever the window is resized
+  window.addEventListener('resize', scaleApp);
+  scaleApp();
 
   </script>
 </body>
